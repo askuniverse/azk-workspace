@@ -31,7 +31,7 @@ const initData = {
   defile2027: { date: "", lieu: "", theme: "", looks: "", ordre: "", scenographie: "", casting: "", musique: "", equipe: "", budget: "", invitations: "", communication: "", images: [], notes: "" },
   psf: [{ id: uid(), nom: "Pièce 1", dateSortie: "", dap: "", dapImages: [], stock: "", shooting: "Non", mannequins: "", photographe: "", teaser: "Non", acteurs: "", realisateur: "", notes: "" }],
   marketing: { national: "", international: "", reseaux: "", techniques: "", notes: "" },
-  artistes: [{ id: uid(), nom: "Artiste A", typeCollab: "Capsule", statut: "Idée", date: "", notes: "" }],
+  artistes: [{ id: uid(), nom: "Artiste A", typeCollab: "Capsule", statut: "Idée", date: "", notes: "", profileImage: null, dapNotes: "", dapImages: [] }],
   brouillons: [],
 };
 
@@ -55,7 +55,7 @@ const GlobalStyle = () => (
     .btn-danger { background: transparent; color: #ff4444; border: 1px solid rgba(255,68,68,0.2); padding: 5px 12px; font-size: 10px; border-radius: 3px; }
     .input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #e8e8e0; font-family: 'DM Mono', monospace; font-size: 12px; padding: 8px 12px; border-radius: 4px; outline: none; width: 100%; }
     .input:focus { border-color: rgba(255,255,255,0.3); }
-    .textarea { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #e8e8e0; font-family: 'DM Mono', monospace; font-size: 12px; padding: 10px 12px; border-radius: 4px; outline: none; width: 100%; resize: vertical; min-height: 80px; }
+    .textarea { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #e8e8e0; font-family: 'DM Mono', monospace; font-size: 12px; padding: 10px 12px; border-radius: 4px; outline: none; width: 100%; resize: none; min-height: 100px; overflow: hidden; }
     .textarea:focus { border-color: rgba(255,255,255,0.3); }
     .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; }
     .checkbox-row:last-child { border-bottom: none; }
@@ -128,7 +128,7 @@ function Field({ label, value, onChange, type = "text", options }) {
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 9, letterSpacing: "0.18em", color: "rgba(255,255,255,0.3)", marginBottom: 5, fontFamily: "'DM Mono', monospace" }}>{label}</div>
       {type === "textarea"
-        ? <textarea className="textarea" value={value || ""} onChange={e => onChange(e.target.value)} />
+        ? <textarea className="textarea" value={value || ""} onChange={e => { onChange(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} onFocus={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }} />
         : type === "select"
         ? <select className="input" value={value || ""} onChange={e => onChange(e.target.value)} style={{ cursor: "pointer" }}>{options.map(o => <option key={o}>{o}</option>)}</select>
         : <input className="input" type={type} value={value || ""} onChange={e => onChange(e.target.value)} />}
@@ -137,6 +137,9 @@ function Field({ label, value, onChange, type = "text", options }) {
 }
 
 function ImageUpload({ images = [], onChange, label = "DAP — IMAGES" }) {
+  const [lightbox, setLightbox] = useState(null);
+  const touchStartX = useRef(null);
+
   const handleFiles = (files) => {
     Array.from(files).forEach(file => {
       if (!file.type.startsWith("image/")) return;
@@ -145,15 +148,27 @@ function ImageUpload({ images = [], onChange, label = "DAP — IMAGES" }) {
       reader.readAsDataURL(file);
     });
   };
+
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || lightbox === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && lightbox < images.length - 1) setLightbox(l => l + 1);
+      if (diff < 0 && lightbox > 0) setLightbox(l => l - 1);
+    }
+    touchStartX.current = null;
+  };
+
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 9, letterSpacing: "0.18em", color: "rgba(255,255,255,0.3)", marginBottom: 8, fontFamily: "'DM Mono', monospace" }}>{label}</div>
       {images.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8, marginBottom: 10 }}>
-          {images.map(img => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 10 }}>
+          {images.map((img, i) => (
             <div key={img.id} className="img-thumb" style={{ aspectRatio: "1" }}>
-              <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              <button className="img-del" onClick={() => onChange(images.filter(i => i.id !== img.id))}>✕</button>
+              <img src={img.src} alt={img.name} onClick={() => setLightbox(i)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+              <button className="img-del" onClick={() => onChange(images.filter(x => x.id !== img.id))}>✕</button>
             </div>
           ))}
         </div>
@@ -163,6 +178,19 @@ function ImageUpload({ images = [], onChange, label = "DAP — IMAGES" }) {
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "'DM Mono', monospace" }}>+ AJOUTER DES IMAGES</div>
         <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 4, fontFamily: "'DM Mono', monospace" }}>Glisser-déposer ou cliquer</div>
       </label>
+      {lightbox !== null && (
+        <div className="modal-overlay" onClick={() => setLightbox(null)} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <div style={{ position: "relative", maxWidth: "92vw", maxHeight: "92vh", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }} onClick={e => e.stopPropagation()}>
+            <img src={images[lightbox].src} alt="" style={{ maxWidth: "92vw", maxHeight: "80vh", objectFit: "contain", borderRadius: 4 }} />
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <button className="btn btn-ghost" onClick={() => setLightbox(l => l - 1)} style={{ opacity: lightbox > 0 ? 1 : 0.2, pointerEvents: lightbox > 0 ? "auto" : "none" }}>‹ PRÉC</button>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>{lightbox + 1} / {images.length}</span>
+              <button className="btn btn-ghost" onClick={() => setLightbox(l => l + 1)} style={{ opacity: lightbox < images.length - 1 ? 1 : 0.2, pointerEvents: lightbox < images.length - 1 ? "auto" : "none" }}>SUIV ›</button>
+            </div>
+            <button className="btn btn-ghost" onClick={() => setLightbox(null)} style={{ position: "absolute", top: -36, right: 0 }}>✕ FERMER</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -396,7 +424,7 @@ function PSFSection({ items, onChange }) {
 // ── ARTISTES ───────────────────────────────────────────────────────────────
 function ArtistesSection({ items, onChange }) {
   const [modal, setModal] = useState(null);
-  const add = () => { const n = { id: uid(), nom: "", typeCollab: "", statut: "Idée", date: "", notes: "" }; onChange([...items, n]); setModal(n); };
+  const add = () => { const n = { id: uid(), nom: "", typeCollab: "", statut: "Idée", date: "", notes: "", profileImage: null, dapNotes: "", dapImages: [] }; onChange([...items, n]); setModal(n); };
   const save = (a) => { onChange(items.map(i => i.id === a.id ? a : i)); setModal(null); };
   const del = (id) => { onChange(items.filter(i => i.id !== id)); setModal(null); };
   return (
@@ -409,6 +437,10 @@ function ArtistesSection({ items, onChange }) {
         {items.length === 0 && <div style={{ padding: 16, fontSize: 11, color: "rgba(255,255,255,0.2)", fontFamily: "'DM Mono', monospace" }}>Aucun artiste</div>}
         {items.map(a => (
           <div key={a.id} onClick={() => setModal(a)} className="checkbox-row" style={{ padding: "12px 16px" }}>
+            {a.profileImage
+              ? <img src={a.profileImage} alt={a.nom} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid rgba(255,255,255,0.1)" }} />
+              : <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "rgba(255,255,255,0.2)", fontFamily: "'Cormorant Garamond', serif" }}>{(a.nom || "?")[0]}</div>
+            }
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontFamily: "'Cormorant Garamond', serif", color: "#fff", marginBottom: 3 }}>{a.nom || "—"}</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>{a.typeCollab || "Type non défini"}</div>
@@ -439,14 +471,38 @@ function ArtistesSection({ items, onChange }) {
 function ArtistForm({ a, onSave }) {
   const [d, setD] = useState({ ...a });
   const upd = (k, v) => setD(p => ({ ...p, [k]: v }));
+
+  const handleProfileImage = (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = e => upd("profileImage", e.target.result);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div style={{ padding: "20px 24px" }}>
-      <Field label="NOM DE L'ARTISTE" value={d.nom} onChange={v => upd("nom", v)} />
+      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+        <label style={{ cursor: "pointer", flexShrink: 0 }}>
+          <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleProfileImage(e.target.files[0])} />
+          {d.profileImage
+            ? <img src={d.profileImage} alt="profil" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "1px solid rgba(255,255,255,0.15)", display: "block" }} />
+            : <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px dashed rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 18, color: "rgba(255,255,255,0.2)" }}>+</span>
+                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", fontFamily: "'DM Mono', monospace" }}>PHOTO</span>
+              </div>
+          }
+        </label>
+        <div style={{ flex: 1 }}>
+          <Field label="NOM DE L'ARTISTE" value={d.nom} onChange={v => upd("nom", v)} />
+        </div>
+      </div>
       <Field label="TYPE DE COLLABORATION" value={d.typeCollab} onChange={v => upd("typeCollab", v)} />
       <Field label="STATUT" value={d.statut} onChange={v => upd("statut", v)} type="select" options={STATUTS} />
       <Field label="DATE PRÉVUE" value={d.date} onChange={v => upd("date", v)} type="date" />
       <Field label="NOTES LIBRES" value={d.notes} onChange={v => upd("notes", v)} type="textarea" />
-      <button className="btn btn-primary" style={{ width: "100%", padding: "10px" }} onClick={() => onSave(d)}>SAUVEGARDER</button>
+      <Field label="DAP — NOTES" value={d.dapNotes} onChange={v => upd("dapNotes", v)} type="textarea" />
+      <ImageUpload images={d.dapImages || []} onChange={v => upd("dapImages", v)} label="DAP — IMAGES" />
+      <button className="btn btn-primary" style={{ width: "100%", padding: "10px", marginTop: 4 }} onClick={() => onSave(d)}>SAUVEGARDER</button>
     </div>
   );
 }
