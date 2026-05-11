@@ -19,5 +19,9 @@ export async function saveData(newData) {
   const { error } = await supabase
     .from('workspace_data')
     .upsert({ id: 'main', data: newData, updated_at: new Date().toISOString() })
-  return !error
+  if (error) {
+    console.error('Supabase save error:', error.message, error.details)
+    return false
+  }
+  return true
 }

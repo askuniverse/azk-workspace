@@ -75,7 +75,10 @@ const GlobalStyle = () => (
     .img-thumb { position: relative; border-radius: 4px; overflow: hidden; background: #0e0e0e; border: 1px solid rgba(255,255,255,0.07); }
     .img-thumb:hover .img-del { opacity: 1 !important; }
     .img-del { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); color: #ff6b6b; border: 1px solid rgba(255,68,68,0.3); border-radius: 3px; font-size: 10px; padding: 2px 7px; cursor: pointer; opacity: 0; transition: opacity 0.15s; font-family: 'DM Mono', monospace; }
-    .save-indicator { position: fixed; bottom: 20px; right: 20px; background: rgba(110,231,183,0.1); border: 1px solid rgba(110,231,183,0.3); color: #6ee7b7; padding: 8px 14px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; z-index: 200; transition: opacity 0.5s; }
+    .save-indicator { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; z-index: 200; transition: opacity 0.5s; }
+    .save-indicator.saving { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+    .save-indicator.saved { background: rgba(110,231,183,0.1); border: 1px solid rgba(110,231,183,0.3); color: #6ee7b7; }
+    .save-indicator.error { background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.3); color: #ff6b6b; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
     @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
     .gate-box { animation: fadeUp 0.4s ease; }
@@ -584,9 +587,9 @@ function App() {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveData(data).then(() => {
-        setSaveState("saved");
-        setTimeout(() => setSaveState(null), 2000);
+      saveData(data).then(ok => {
+        setSaveState(ok ? "saved" : "error");
+        setTimeout(() => setSaveState(null), ok ? 2000 : 6000);
       });
     }, 1200);
   }, [data]);
@@ -695,8 +698,8 @@ function App() {
         </div>
       </div>
       {saveState && (
-        <div className="save-indicator">
-          {saveState === "saving" ? "⏳ SAUVEGARDE…" : "✓ SAUVEGARDÉ"}
+        <div className={`save-indicator ${saveState}`}>
+          {saveState === "saving" ? "⏳ SAUVEGARDE…" : saveState === "error" ? "✗ ERREUR — NON SAUVEGARDÉ" : "✓ SAUVEGARDÉ"}
         </div>
       )}
     </div>
