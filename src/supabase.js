@@ -2,9 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://svpxloxnroxztzgtueko.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cHhsb3hucm94enR6Z3R1ZWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMjI3MzAsImV4cCI6MjA5Mjg5ODczMH0.zDrC7MlDF8enCyucGvi1aWnbYNBE6h7wcGnlCe5baxo'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cHhsb3hucm94enR6Z3R1ZWtvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzMyMjczMCwiZXhwIjoyMDkyODk4NzMwfQ.HXRfgHDDE3kXWAPdGNReIHn5fP2fMeC8GTQrQ9DL3pY'
 const LS_KEY = 'azk_workspace_v1'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 export async function loadData() {
   // 1. Essayer Supabase
@@ -39,9 +41,9 @@ export async function saveData(newData) {
     console.error('localStorage save failed:', e)
   }
 
-  // Tenter Supabase pour la sync cross-device
+  // Tenter Supabase pour la sync cross-device (service_role bypass RLS)
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('workspace_data')
       .upsert({ id: 'main', data: newData, updated_at: new Date().toISOString() })
     if (error) {
